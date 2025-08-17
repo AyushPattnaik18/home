@@ -1,150 +1,779 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Steganography Homepage</title>
-  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@7/babel.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image Steganography using CNN</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    .bg-gradient-custom {
-      background: linear-gradient(to bottom right, #1a1a1a, #2d2d2d, #1f2a44);
+    :root{
+      --bg: #0a0f1a;
+      --panel: #0f1626;
+      --accent: #00e5ff;
+      --accent-2: #7cffb2;
+      --muted: #90a4b4;
+      --high: #e6f7ff;
+      --danger: #ff6b6b;
+      --ok: #31e981;
+      --grid: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0) 0 0/24px 24px;
     }
-    .bg-gradient-glow {
-      background: linear-gradient(to right, #0d6efd, #6f42c1);
-      opacity: 0.1;
+    body{
+      background: radial-gradient(1200px 800px at 80% -10%, rgba(0,229,255,0.08), transparent 40%),
+                  radial-gradient(1000px 700px at -10% 110%, rgba(124,255,178,0.08), transparent 40%),
+                  var(--bg);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
     }
-    .bg-card-custom {
-      background: rgba(40, 40, 40, 0.5);
-      backdrop-filter: blur(4px);
+    .neon {
+      text-shadow: 0 0 12px rgba(0,229,255,0.6), 0 0 30px rgba(0,229,255,0.4);
     }
-    .bg-card-opaque {
-      background: rgba(40, 40, 40, 0.8);
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03);
+      backdrop-filter: blur(6px);
     }
-    .border-custom {
-      border-color: #444 !important;
+    .cyber-border {
+      position: relative;
+      overflow: hidden;
     }
-    .shadow-glow:hover {
-      box-shadow: 0 0 15px rgba(13, 110, 253, 0.5);
+    .cyber-border:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      padding: 1px;
+      border-radius: 14px;
+      background: linear-gradient(120deg, rgba(0,229,255,0.35), rgba(124,255,178,0.2), rgba(0,229,255,0.35));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      pointer-events: none;
     }
-    .shadow-cyber {
-      box-shadow: 0 0 10px rgba(13, 110, 253, 0.3);
+    .matrix {
+      background-image: var(--grid);
+    }
+    .quote-cloud {
+      pointer-events: none;
+      opacity: 0.12;
+      mix-blend-mode: screen;
+    }
+    .drag-active {
+      outline: 2px dashed rgba(0,229,255,0.7);
+      outline-offset: -6px;
+      background: rgba(0,229,255,0.04);
+    }
+    .btn {
+      transition: transform 0.06s ease, filter 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .glow {
+      box-shadow: 0 8px 24px rgba(0,229,255,0.18);
+    }
+    .tab-active {
+      background: rgba(0,229,255,0.12);
+      color: var(--high);
+      border-color: rgba(0,229,255,0.45);
+      text-shadow: 0 0 10px rgba(0,229,255,0.4);
+    }
+    .kbd {
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.04);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco;
+      font-size: 12px;
+      color: #b8c7d6;
+    }
+    .pill {
+      background: linear-gradient(90deg, rgba(0,229,255,0.18), rgba(124,255,178,0.18));
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 9999px;
+      box-shadow: 0 0 10px currentColor;
     }
   </style>
 </head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-    function HomePage() {
-      return (
-        <div className="min-vh-100 bg-gradient-custom">
-          <div className="position-relative overflow-hidden py-5 px-4">
-            <div className="position-absolute top-0 start-0 w-100 h-100 bg-gradient-glow"></div>
-            <div className="container text-center position-relative" style={{ zIndex: 10 }}>
-              <h1 className="display-4 fw-bold mb-4 text-white">
-                Image <span className="text-primary">Steganography</span>
-              </h1>
-              <div className="mx-auto" style={{ maxWidth: '32rem' }}>
-                <div className="p-4 bg-card-custom border border-custom rounded-lg shadow-glow transition-all duration-300 mb-4">
-                  <p className="fs-5 text-muted fst-italic font-monospace text-center">
-                    "In the realm of digital shadows, steganography is the art of hiding in plain sight."
-                  </p>
-                </div>
+<body class="text-slate-200">
+  <!-- Top Navigation -->
+  <header class="fixed top-0 left-0 right-0 z-50">
+    <div class="mx-auto max-w-7xl px-4">
+      <div class="mt-4 flex items-center justify-between rounded-2xl panel cyber-border py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <div class="absolute inset-0 blur-md rounded-xl" style="background: radial-gradient(circle, rgba(0,229,255,0.35), transparent 60%);"></div>
+            <div class="relative bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 rounded-xl p-2">
+              <!-- Simple shield-lock icon -->
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="drop-shadow">
+                <path d="M12 3l6 2v6c0 5-3.5 7.5-6 8-2.5-.5-6-3-6-8V5l6-2z" stroke="#67e8f9" stroke-width="1.4"/>
+                <circle cx="12" cy="11.5" r="2.2" stroke="#7cffb2" stroke-width="1.2"/>
+                <path d="M12 13.8V16" stroke="#7cffb2" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <div class="text-lg font-bold tracking-wide">
+              <span class="text-cyan-300">Image</span> <span class="text-emerald-300">Steganography</span> <span class="text-slate-300">using</span> <span class="neon text-cyan-200">CNN</span>
+            </div>
+            <div class="text-xs text-slate-400 -mt-0.5">Hide in plain sight. Secure by design.</div>
+          </div>
+        </div>
+
+        <nav class="flex items-center gap-2">
+          <button data-tab="home" class="tab-btn px-4 py-2 rounded-xl border border-slate-600/50 text-slate-300 hover:text-cyan-200 hover:border-cyan-400/40 transition">Home</button>
+          <button data-tab="encode" class="tab-btn px-4 py-2 rounded-xl border border-slate-600/50 text-slate-300 hover:text-cyan-200 hover:border-cyan-400/40 transition">Encoding</button>
+          <button data-tab="decode" class="tab-btn px-4 py-2 rounded-xl border border-slate-600/50 text-slate-300 hover:text-cyan-200 hover:border-cyan-400/40 transition">Decoding</button>
+          <button data-tab="detect" class="tab-btn px-4 py-2 rounded-xl border border-slate-600/50 text-slate-300 hover:text-cyan-200 hover:border-cyan-400/40 transition">Detection</button>
+        </nav>
+
+        <div class="hidden sm:flex items-center gap-3">
+          <span class="pill text-xs px-3 py-1 rounded-full text-slate-200">Cybersecurity Theme</span>
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span class="status-dot" style="color: #31e981; background: #31e981;"></span>
+            Ready
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero with Quotes Background -->
+  <section class="pt-36 pb-8 relative overflow-hidden">
+    <!-- Floating quotes background -->
+    <div class="absolute inset-0 quote-cloud">
+      <div class="mx-auto max-w-7xl h-full px-4 relative">
+        <div class="absolute top-6 left-4 right-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-200/70 font-semibold">
+          <div class="panel rounded-xl p-4">“The most secure message is the one no one knows exists.”</div>
+          <div class="panel rounded-xl p-4">“Steganography: when silence carries the loudest secret.”</div>
+        </div>
+        <div class="absolute bottom-8 left-4 right-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-200/70 font-semibold">
+          <div class="panel rounded-xl p-4">“Obscurity is not security—steganography with validation is.”</div>
+          <div class="panel rounded-xl p-4">“Trust math. Hide in noise.”</div>
+          <div class="panel rounded-xl p-4">“If it looks ordinary, it’s doing its job.”</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mx-auto max-w-7xl px-4 relative">
+      <div class="grid lg:grid-cols-5 gap-6">
+        <!-- Left hero copy -->
+        <div class="lg:col-span-3 panel rounded-2xl cyber-border p-8 matrix">
+          <div class="inline-flex items-center gap-2 text-xs text-cyan-300 mb-3">
+            <span class="status-dot" style="background:#00e5ff;"></span>
+            CNN-powered concept (Demo)
+          </div>
+          <h1 class="text-3xl md:text-4xl font-extrabold leading-tight">
+            Hide secrets inside images with confidence
+          </h1>
+          <p class="mt-3 text-slate-300/90">
+            This Canva Code demo showcases the workflow for encoding, decoding, and detecting stego images. It simulates the experience end-to-end on your device.
+          </p>
+          <div class="mt-5 flex flex-wrap items-center gap-3">
+            <button data-tab="encode" class="tab-btn inline-flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-100 px-4 py-2 rounded-xl btn glow">
+              Get started with Encoding
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h12m-5-5l5 5-5 5" stroke="#67e8f9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <span class="text-slate-400 text-sm">Tip: Drop an image or paste a path</span>
+          </div>
+          <div class="mt-6 flex items-center gap-3 text-xs text-slate-400">
+            <span class="kbd">Drag & Drop</span>
+            <span class="kbd">Ctrl/⌘ + V</span>
+            <span class="kbd">Paste Link</span>
+          </div>
+        </div>
+
+        <!-- Right status / quick info -->
+        <div class="lg:col-span-2 grid grid-rows-2 gap-6">
+          <div class="panel rounded-2xl cyber-border p-6">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-slate-400">Project</div>
+              <div class="pill px-3 py-1 rounded-full text-xs text-slate-100">Image Steganography using CNN</div>
+            </div>
+            <div class="mt-4 text-4xl font-extrabold text-cyan-200 neon">Stealth-Grade</div>
+            <div class="mt-2 text-slate-400 text-sm">Secure by disguise. Detect by design.</div>
+            <div class="mt-5 grid grid-cols-3 gap-3 text-center">
+              <div class="panel rounded-xl p-3">
+                <div class="text-xs text-slate-400">Encoding</div>
+                <div class="text-lg font-bold text-emerald-300">Demo</div>
+              </div>
+              <div class="panel rounded-xl p-3">
+                <div class="text-xs text-slate-400">Decoding</div>
+                <div class="text-lg font-bold text-cyan-300">Demo</div>
+              </div>
+              <div class="panel rounded-xl p-3">
+                <div class="text-xs text-slate-400">Detection</div>
+                <div class="text-lg font-bold text-yellow-300">Demo</div>
               </div>
             </div>
           </div>
-          <div className="container px-4 mb-5">
-            <div className="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
-              {[
-                { title: "Files Processed", icon: "file-image", value: "0" },
-                { title: "Successful Operations", icon: "shield", value: "0%" },
-                { title: "Average Processing Time", icon: "zap", value: "0s" },
-                { title: "Total Data Hidden", icon: "clock", value: "0 GB" }
-              ].map((item, index) => (
-                <Card key={index} title={item.title} icon={item.icon} value={item.value} />
-              ))}
+          <div class="panel rounded-2xl cyber-border p-6">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-slate-400">Quick Actions</div>
+              <div class="text-xs text-slate-400">History stored locally</div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button data-tab="encode" class="tab-btn px-3 py-1.5 rounded-lg border border-slate-600/50 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">New Encode</button>
+              <button data-tab="decode" class="tab-btn px-3 py-1.5 rounded-lg border border-slate-600/50 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">New Decode</button>
+              <button data-tab="detect" class="tab-btn px-3 py-1.5 rounded-lg border border-slate-600/50 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Run Detection</button>
+            </div>
+            <div class="mt-4 text-xs text-slate-400">
+              Note: This is a front-end demo. Real CNN processing isn’t included in-browser.
             </div>
           </div>
-          <div className="container px-4 pb-5">
-            <div className="card bg-card-opaque border-custom shadow-cyber">
-              <div className="card-body">
-                <h3 className="card-title fs-3 text-white d-flex align-items-center gap-2">
-                  <ClockIcon />
-                  Processing History
-                </h3>
-                <p className="card-text text-muted">
-                  Recent steganography operations and their status
-                </p>
-                <div className="text-center py-4">
-                  <p className="text-muted font-monospace">No operations performed yet</p>
-                  <p className="text-muted small mt-2">
-                    Start encoding, decoding, or detecting to see your history here
-                  </p>
-                </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Tabs -->
+  <main class="mx-auto max-w-7xl px-4 pb-16 space-y-8">
+
+    <!-- Home -->
+    <section id="tab-home" class="tab-section">
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- History Dashboard -->
+        <div class="lg:col-span-2 panel rounded-2xl cyber-border p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-slate-100">Your History</h2>
+            <div class="flex items-center gap-2">
+              <button id="clearHistory" class="px-3 py-1.5 rounded-lg border border-slate-600/60 text-slate-300 hover:text-rose-200 hover:border-rose-400/40">Clear</button>
+              <span class="text-xs text-slate-500">Local to your device</span>
+            </div>
+          </div>
+          <div id="historyList" class="grid md:grid-cols-2 gap-4"></div>
+          <div id="noHistory" class="text-slate-400 text-sm">No activity yet. Try encoding, decoding, or detecting to see it here.</div>
+        </div>
+
+        <!-- About / Guidance -->
+        <div class="panel rounded-2xl cyber-border p-6">
+          <h3 class="text-lg font-semibold text-slate-100">Why Image Steganography?</h3>
+          <p class="mt-2 text-slate-300/90">
+            It hides sensitive information inside ordinary images. When paired with robust models like CNNs, it improves resilience and detection accuracy.
+          </p>
+          <ul class="mt-4 space-y-2 text-slate-300/90">
+            <li class="flex gap-2">
+              <span class="text-emerald-300">•</span>
+              Disguises messages to avoid unwanted attention
+            </li>
+            <li class="flex gap-2">
+              <span class="text-emerald-300">•</span>
+              Supports integrity checks with secret keys
+            </li>
+            <li class="flex gap-2">
+              <span class="text-emerald-300">•</span>
+              Detection helps verify if an image is stego or clean
+            </li>
+          </ul>
+          <div class="mt-5">
+            <div class="text-sm text-slate-400">Try a quick flow:</div>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <button data-tab="encode" class="tab-btn px-3 py-1.5 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Encode</button>
+              <button data-tab="decode" class="tab-btn px-3 py-1.5 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Decode</button>
+              <button data-tab="detect" class="tab-btn px-3 py-1.5 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Detect</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Encode -->
+    <section id="tab-encode" class="tab-section hidden">
+      <div class="panel rounded-2xl cyber-border p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-slate-100">Encoding</h2>
+          <span class="pill text-xs px-3 py-1 rounded-full">Demo</span>
+        </div>
+        <p class="mt-1 text-slate-400 text-sm">Choose a cover image, enter a secret key, then encode.</p>
+
+        <!-- Uploader -->
+        <div class="mt-5 grid lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2">
+            <div id="encodeDrop" class="rounded-xl border border-slate-600/60 panel p-6 flex flex-col items-center justify-center text-center transition">
+              <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-cyan-400/10 border border-cyan-400/30">
+                <!-- upload icon -->
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 16V8m0 0l-3 3m3-3l3 3" stroke="#67e8f9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M5 16v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1" stroke="#67e8f9" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="mt-3 font-semibold">Drag & drop your cover image</div>
+              <div class="text-sm text-slate-400">or click to browse</div>
+              <input id="encodeFile" type="file" accept="image/*" class="hidden">
+            </div>
+
+            <div class="mt-4 flex items-center gap-2">
+              <div class="flex-1">
+                <label class="text-xs text-slate-400">Or paste image path / URL</label>
+                <input id="encodePath" type="text" placeholder="e.g. https://example.com/cover.png"
+                       class="w-full mt-1 rounded-lg bg-slate-900/50 border border-slate-600/60 px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
+              </div>
+              <button id="encodeLoadPath" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Load</button>
+            </div>
+
+            <div id="encodePreviewWrap" class="mt-4 hidden">
+              <div class="text-xs text-slate-400 mb-2">Preview</div>
+              <img id="encodePreview" alt="Cover Preview" class="w-full max-h-72 object-contain rounded-lg border border-slate-700/60">
+            </div>
+          </div>
+
+          <div class="lg:col-span-1">
+            <label class="text-xs text-slate-400">Secret Key</label>
+            <input id="encodeKey" type="password" placeholder="Enter secret key"
+                   class="w-full mt-1 rounded-lg bg-slate-900/50 border border-slate-600/60 px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
+            <div class="mt-3 flex items-center gap-2">
+              <button id="toggleKey" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Show</button>
+              <button id="genKey" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Generate</button>
+            </div>
+
+            <button id="encodeBtn" class="w-full mt-5 bg-emerald-400/20 hover:bg-emerald-400/30 border border-emerald-300/40 text-emerald-100 px-4 py-2 rounded-xl btn glow">Encode</button>
+
+            <div id="encodeResult" class="mt-5 hidden">
+              <div class="text-sm text-slate-300">Result (simulated)</div>
+              <img id="encodeOut" class="mt-2 w-full max-h-72 object-contain rounded-lg border border-slate-700/60" alt="Encoded Output">
+              <div class="mt-3 flex items-center gap-2">
+                <a id="downloadEncoded" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40" download="stego-image.png">Download</a>
+                <span class="text-xs text-slate-500">This demo overlays a subtle watermark to simulate embedding.</span>
               </div>
             </div>
           </div>
         </div>
-      );
-    }
+      </div>
+    </section>
 
-    function Card({ title, icon, value }) {
-      return (
-        <div className="card bg-card-opaque border-custom shadow-sm shadow-glow transition-all duration-300">
-          <div className="card-body d-flex align-items-center justify-content-between pb-2">
-            <h3 className="card-title fs-6 text-muted mb-0">{title}</h3>
-            {icon === "file-image" && <FileImageIcon />}
-            {icon === "shield" && <ShieldIcon />}
-            {icon === "zap" && <ZapIcon />}
-            {icon === "clock" && <ClockIcon />}
+    <!-- Decode -->
+    <section id="tab-decode" class="tab-section hidden">
+      <div class="panel rounded-2xl cyber-border p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-slate-100">Decoding</h2>
+          <span class="pill text-xs px-3 py-1 rounded-full">Demo</span>
+        </div>
+        <p class="mt-1 text-slate-400 text-sm">Pick a stego image, enter the secret key, then decode.</p>
+
+        <div class="mt-5 grid lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2">
+            <div id="decodeDrop" class="rounded-xl border border-slate-600/60 panel p-6 flex flex-col items-center justify-center text-center transition">
+              <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-cyan-400/10 border border-cyan-400/30">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 8v8m0 0l-3-3m3 3l3-3" stroke="#67e8f9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M5 8V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1" stroke="#67e8f9" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="mt-3 font-semibold">Drag & drop your stego image</div>
+              <div class="text-sm text-slate-400">or click to browse</div>
+              <input id="decodeFile" type="file" accept="image/*" class="hidden">
+            </div>
+
+            <div class="mt-4 flex items-center gap-2">
+              <div class="flex-1">
+                <label class="text-xs text-slate-400">Or paste image path / URL</label>
+                <input id="decodePath" type="text" placeholder="e.g. https://example.com/stego.png"
+                       class="w-full mt-1 rounded-lg bg-slate-900/50 border border-slate-600/60 px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
+              </div>
+              <button id="decodeLoadPath" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Load</button>
+            </div>
+
+            <div id="decodePreviewWrap" class="mt-4 hidden">
+              <div class="text-xs text-slate-400 mb-2">Preview</div>
+              <img id="decodePreview" alt="Stego Preview" class="w-full max-h-72 object-contain rounded-lg border border-slate-700/60">
+            </div>
           </div>
-          <div className="card-body pt-0">
-            <div className="fs-4 fw-bold text-white font-monospace">{value}</div>
+
+          <div class="lg:col-span-1">
+            <label class="text-xs text-slate-400">Secret Key</label>
+            <input id="decodeKey" type="password" placeholder="Enter secret key"
+                   class="w-full mt-1 rounded-lg bg-slate-900/50 border border-slate-600/60 px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
+            <div class="mt-3 flex items-center gap-2">
+              <button id="toggleDecodeKey" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Show</button>
+            </div>
+
+            <button id="decodeBtn" class="w-full mt-5 bg-cyan-400/20 hover:bg-cyan-400/30 border border-cyan-300/40 text-cyan-100 px-4 py-2 rounded-xl btn glow">Decode</button>
+
+            <div id="decodeResult" class="mt-5 hidden">
+              <div class="text-sm text-slate-300">Extracted Message (simulated)</div>
+              <div id="decodedText" class="mt-2 rounded-lg bg-slate-900/50 border border-slate-700/60 p-3 text-slate-200 break-words">—</div>
+              <div class="mt-2 text-xs text-slate-500">This demo shows a placeholder message based on your key.</div>
+            </div>
           </div>
         </div>
-      );
+      </div>
+    </section>
+
+    <!-- Detection -->
+    <section id="tab-detect" class="tab-section hidden">
+      <div class="panel rounded-2xl cyber-border p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-slate-100">Detection</h2>
+          <span class="pill text-xs px-3 py-1 rounded-full">Demo</span>
+        </div>
+        <p class="mt-1 text-slate-400 text-sm">Provide an image and check if it’s likely a stego image.</p>
+
+        <div class="mt-5 grid lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2">
+            <div id="detectDrop" class="rounded-xl border border-slate-600/60 panel p-6 flex flex-col items-center justify-center text-center transition">
+              <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-yellow-400/10 border border-yellow-400/30">
+                <!-- search/detect icon -->
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="6" stroke="#fde68a" stroke-width="1.5"/>
+                  <path d="M20 20l-3.5-3.5" stroke="#fde68a" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="mt-3 font-semibold">Drag & drop an image</div>
+              <div class="text-sm text-slate-400">or click to browse</div>
+              <input id="detectFile" type="file" accept="image/*" class="hidden">
+            </div>
+
+            <div class="mt-4 flex items-center gap-2">
+              <div class="flex-1">
+                <label class="text-xs text-slate-400">Or paste image path / URL</label>
+                <input id="detectPath" type="text" placeholder="e.g. https://example.com/image.png"
+                       class="w-full mt-1 rounded-lg bg-slate-900/50 border border-slate-600/60 px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
+              </div>
+              <button id="detectLoadPath" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Load</button>
+            </div>
+
+            <div id="detectPreviewWrap" class="mt-4 hidden">
+              <div class="text-xs text-slate-400 mb-2">Preview</div>
+              <img id="detectPreview" alt="Detection Preview" class="w-full max-h-72 object-contain rounded-lg border border-slate-700/60">
+            </div>
+          </div>
+
+          <div class="lg:col-span-1">
+            <button id="detectBtn" class="w-full mt-7 bg-yellow-400/20 hover:bg-yellow-400/30 border border-yellow-300/40 text-yellow-100 px-4 py-2 rounded-xl btn glow">Detect</button>
+
+            <div id="detectResult" class="mt-5 hidden">
+              <div id="detectBadge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border">
+                <span class="status-dot"></span>
+                <span id="detectText" class="font-semibold"></span>
+              </div>
+              <div id="detectHint" class="mt-3 text-xs text-slate-500"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-800/60">
+    <div class="mx-auto max-w-7xl px-4 py-6 text-slate-500 text-sm flex flex-wrap items-center justify-between gap-3">
+      <div>© <span id="year"></span> Image Steganography using CNN — Demo</div>
+      <div class="flex items-center gap-3">
+        <span class="kbd">H</span> to toggle Home
+        <span class="kbd">E</span> Encode
+        <span class="kbd">D</span> Decode
+        <span class="kbd">T</span> Detect
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Utilities
+    const $ = (q, root=document) => root.querySelector(q);
+    const $$ = (q, root=document) => Array.from(root.querySelectorAll(q));
+
+    const tabs = ["home","encode","decode","detect"];
+    const sections = {
+      home: $("#tab-home"),
+      encode: $("#tab-encode"),
+      decode: $("#tab-decode"),
+      detect: $("#tab-detect")
+    };
+    const tabButtons = $$(".tab-btn");
+
+    function setActiveTab(name){
+      tabs.forEach(t=>{
+        sections[t].classList.toggle("hidden", t!==name);
+      });
+      tabButtons.forEach(btn=>{
+        const active = btn.dataset.tab===name;
+        btn.classList.toggle("tab-active", active);
+      });
+      localStorage.setItem("activeTab", name);
     }
 
-    function FileImageIcon() {
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-primary">
-          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
-          <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
-          <circle cx="10" cy="12" r="2"></circle>
-          <path d="m20 17-1.296-1.296a2.41 2.41 0 0 0-3.408 0L9 22"></path>
-        </svg>
-      );
+    // Initial tab
+    setActiveTab(localStorage.getItem("activeTab") || "home");
+    tabButtons.forEach(btn=>btn.addEventListener("click", ()=>setActiveTab(btn.dataset.tab)));
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown",(e)=>{
+      if (["INPUT","TEXTAREA"].includes(e.target.tagName)) return;
+      const k = e.key.toLowerCase();
+      if (k==="h") setActiveTab("home");
+      if (k==="e") setActiveTab("encode");
+      if (k==="d") setActiveTab("decode");
+      if (k==="t") setActiveTab("detect");
+    });
+
+    // Year
+    $("#year").textContent = new Date().getFullYear();
+
+    // History
+    const histKey = "stego_history_v1";
+    function getHistory(){ try { return JSON.parse(localStorage.getItem(histKey)||"[]"); } catch { return []; } }
+    function setHistory(arr){ localStorage.setItem(histKey, JSON.stringify(arr)); }
+    function addHistory(entry){
+      const arr = getHistory();
+      arr.unshift({...entry, time: new Date().toISOString()});
+      setHistory(arr.slice(0,12));
+      renderHistory();
+    }
+    function renderHistory(){
+      const list = $("#historyList");
+      const data = getHistory();
+      list.innerHTML = "";
+      $("#noHistory").classList.toggle("hidden", data.length>0);
+      data.forEach(item=>{
+        const div = document.createElement("div");
+        div.className = "panel rounded-xl p-4";
+        const badgeColor = item.type==="Encode" ? "text-emerald-300" : item.type==="Decode" ? "text-cyan-300" : "text-yellow-300";
+        div.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-sm ${badgeColor} font-semibold">${item.type}</div>
+              <div class="text-slate-300 text-sm mt-1">${item.detail}</div>
+              <div class="text-xs text-slate-500 mt-2">${new Date(item.time).toLocaleString()}</div>
+            </div>
+            ${item.thumb ? `<img src="${item.thumb}" alt="thumb" class="w-16 h-16 object-cover rounded-lg border border-slate-700/60">` : ""}
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+    renderHistory();
+    $("#clearHistory").addEventListener("click", ()=>{ setHistory([]); renderHistory(); });
+
+    // Generic image loaders
+    async function loadImageFromPath(input, previewEl, wrapEl){
+      const url = input.value.trim();
+      if(!url){ toast("Please enter a path or URL."); return null; }
+      try{
+        // Try to load as URL
+        previewEl.src = url;
+        await new Promise((res, rej)=>{
+          previewEl.onload = res;
+          previewEl.onerror = rej;
+        });
+        wrapEl.classList.remove("hidden");
+        return url;
+      }catch{
+        toast("Could not load image from the given path/URL.");
+        return null;
+      }
     }
 
-    function ShieldIcon() {
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-primary">
-          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
-        </svg>
-      );
+    function bindDropArea(areaEl, fileInput, onLoaded){
+      const openPicker = () => fileInput.click();
+      areaEl.addEventListener("click", openPicker);
+      ;["dragenter","dragover"].forEach(evt=>{
+        areaEl.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); areaEl.classList.add("drag-active"); });
+      });
+      ;["dragleave","drop"].forEach(evt=>{
+        areaEl.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); areaEl.classList.remove("drag-active"); });
+      });
+      areaEl.addEventListener("drop",(e)=>{
+        const f = e.dataTransfer.files?.[0];
+        if(f) handleFile(f);
+      });
+      fileInput.addEventListener("change", (e)=>{
+        const f = e.target.files?.[0];
+        if(f) handleFile(f);
+      });
+      function handleFile(file){
+        const reader = new FileReader();
+        reader.onload = ()=> onLoaded(reader.result, file);
+        reader.readAsDataURL(file);
+      }
     }
 
-    function ZapIcon() {
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-primary">
-          <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path>
-        </svg>
-      );
+    // Encode flow
+    let encodeImgSrc = null;
+    bindDropArea($("#encodeDrop"), $("#encodeFile"), (src, file)=>{
+      encodeImgSrc = src;
+      $("#encodePreview").src = src;
+      $("#encodePreviewWrap").classList.remove("hidden");
+    });
+    $("#encodeLoadPath").addEventListener("click", async ()=>{
+      const ok = await loadImageFromPath($("#encodePath"), $("#encodePreview"), $("#encodePreviewWrap"));
+      if(ok){ encodeImgSrc = $("#encodePreview").src; }
+    });
+    $("#toggleKey").addEventListener("click", ()=>{
+      const inp = $("#encodeKey");
+      inp.type = inp.type === "password" ? "text":"password";
+      $("#toggleKey").textContent = inp.type === "password" ? "Show" : "Hide";
+    });
+    $("#genKey").addEventListener("click", ()=>{
+      const key = crypto.getRandomValues(new Uint8Array(16)).reduce((s,b)=>s + b.toString(16).padStart(2,"0"),"");
+      $("#encodeKey").value = key;
+      toast("Secret key generated.");
+    });
+
+    $("#encodeBtn").addEventListener("click", ()=>{
+      if(!encodeImgSrc){ toast("Please select an image first."); return; }
+      const key = $("#encodeKey").value.trim();
+      if(!key){ toast("Please enter a secret key."); return; }
+      // Simulate encoding by drawing onto canvas and adding subtle watermark
+      simulateEncode(encodeImgSrc, key).then(dataUrl=>{
+        $("#encodeOut").src = dataUrl;
+        $("#downloadEncoded").href = dataUrl;
+        $("#encodeResult").classList.remove("hidden");
+        addHistory({ type:"Encode", detail:"Created a stego image (demo).", thumb:dataUrl });
+        toast("Encoded (simulated). You can download the result.");
+      });
+    });
+
+    function simulateEncode(src, key){
+      return new Promise((resolve)=>{
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = ()=>{
+          const maxW = 800, maxH = 600;
+          let {width:w, height:h} = img;
+          const ratio = Math.min(maxW/w, maxH/h, 1);
+          w = Math.round(w*ratio); h = Math.round(h*ratio);
+          const c = document.createElement("canvas");
+          c.width = w; c.height = h;
+          const ctx = c.getContext("2d");
+          ctx.drawImage(img, 0,0,w,h);
+
+          // Subtle watermark: diagonal key hash pattern for demo
+          const grad = ctx.createLinearGradient(0,0,w,h);
+          grad.addColorStop(0, "rgba(0,229,255,0.05)");
+          grad.addColorStop(1, "rgba(124,255,178,0.05)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0,0,w,h);
+
+          ctx.save();
+          ctx.globalAlpha = 0.12;
+          ctx.translate(w/2, h/2);
+          ctx.rotate(-Math.PI/6);
+          ctx.fillStyle = "rgba(0,229,255,0.25)";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = "bold 22px 'JetBrains Mono', monospace";
+          const tag = `KEY:${key.slice(0,12)} • DEMO`;
+          for(let y=-h; y<=h; y+=120){
+            for(let x=-w; x<=w; x+=280){
+              ctx.fillText(tag, x, y);
+            }
+          }
+          ctx.restore();
+
+          resolve(c.toDataURL("image/png"));
+        };
+        img.src = src;
+      });
     }
 
-    function ClockIcon() {
-      return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-      );
+    // Decode flow
+    let decodeImgSrc = null;
+    bindDropArea($("#decodeDrop"), $("#decodeFile"), (src)=>{
+      decodeImgSrc = src;
+      $("#decodePreview").src = src;
+      $("#decodePreviewWrap").classList.remove("hidden");
+    });
+    $("#decodeLoadPath").addEventListener("click", async ()=>{
+      const ok = await loadImageFromPath($("#decodePath"), $("#decodePreview"), $("#decodePreviewWrap"));
+      if(ok){ decodeImgSrc = $("#decodePreview").src; }
+    });
+    $("#toggleDecodeKey").addEventListener("click", ()=>{
+      const inp = $("#decodeKey");
+      inp.type = inp.type === "password" ? "text":"password";
+      $("#toggleDecodeKey").textContent = inp.type === "password" ? "Show" : "Hide";
+    });
+    $("#decodeBtn").addEventListener("click", ()=>{
+      if(!decodeImgSrc){ toast("Please select a stego image first."); return; }
+      const key = $("#decodeKey").value.trim();
+      if(!key){ toast("Please enter the secret key."); return; }
+      // Demo: create a pseudo message based on the key
+      const message = demoMessageFromKey(key);
+      $("#decodedText").textContent = message;
+      $("#decodeResult").classList.remove("hidden");
+      addHistory({ type:"Decode", detail:"Extracted a message (demo).", thumb: decodeImgSrc });
+      toast("Decoded (simulated). Message shown.");
+    });
+
+    function demoMessageFromKey(key){
+      const tips = [
+        "Channel secure. Payload intact.",
+        "Hidden successfully retrieved.",
+        "No anomalies detected in payload.",
+        "Message integrity verified.",
+        "Stego signal recovered cleanly."
+      ];
+      let hash = 0;
+      for (let i=0;i<key.length;i++) hash = (hash*31 + key.charCodeAt(i))>>>0;
+      return tips[hash % tips.length] + " [Key:" + key.slice(0,6) + "…]";
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<HomePage />);
+    // Detection flow
+    let detectImgSrc = null;
+    bindDropArea($("#detectDrop"), $("#detectFile"), (src)=>{
+      detectImgSrc = src;
+      $("#detectPreview").src = src;
+      $("#detectPreviewWrap").classList.remove("hidden");
+    });
+    $("#detectLoadPath").addEventListener("click", async ()=>{
+      const ok = await loadImageFromPath($("#detectPath"), $("#detectPreview"), $("#detectPreviewWrap"));
+      if(ok){ detectImgSrc = $("#detectPreview").src; }
+    });
+    $("#detectBtn").addEventListener("click", ()=>{
+      if(!detectImgSrc){ toast("Please select an image first."); return; }
+      // Demo heuristic: treat images with "stego" or data URLs as "detected" sometimes
+      const res = simulateDetect(detectImgSrc);
+      const badge = $("#detectBadge");
+      const text = $("#detectText");
+      const dot = $("#detectBadge .status-dot");
+      const hint = $("#detectHint");
+      $("#detectResult").classList.remove("hidden");
+      if(res.detected){
+        badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-400/40 bg-emerald-400/10";
+        text.textContent = "Stego image detected";
+        dot.style.background = "#31e981";
+        dot.style.color = "#31e981";
+        hint.textContent = "Confidence (demo): " + res.score + "%. If this were real, we’d show CNN confidence.";
+        addHistory({ type:"Detection", detail:"Stego image detected (demo).", thumb: detectImgSrc });
+      } else {
+        badge.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-500/60 bg-slate-800/40";
+        text.textContent = "Not a stego image";
+        dot.style.background = "#94a3b8";
+        dot.style.color = "#94a3b8";
+        hint.textContent = "No clear stego signals found (demo).";
+        addHistory({ type:"Detection", detail:"No stego patterns detected (demo).", thumb: detectImgSrc });
+      }
+      toast("Detection complete (demo).");
+    });
+
+    function simulateDetect(src){
+      // Simple deterministic demo based on src string length
+      let score = (src.length % 100);
+      const detected = score > 45; // arbitrary threshold
+      score = 50 + Math.round((score-50)*0.8);
+      score = Math.max(0, Math.min(100, score));
+      return { detected, score };
+    }
+
+    // Toasts
+    const toaster = document.createElement("div");
+    toaster.className = "fixed bottom-5 right-5 z-[100] space-y-2";
+    document.body.appendChild(toaster);
+    function toast(msg){
+      const t = document.createElement("div");
+      t.className = "panel rounded-lg px-4 py-2 border border-cyan-400/30 text-slate-100 bg-cyan-400/10";
+      t.textContent = msg;
+      toaster.appendChild(t);
+      setTimeout(()=>{ t.style.opacity="0"; t.style.transform="translateY(6px)"; t.style.transition="all .3s"; }, 1800);
+      setTimeout(()=> t.remove(), 2300);
+    }
+
+    // Accessibility: focus outline on keyboard nav
+    let mouseDown = false;
+    window.addEventListener("mousedown", ()=>{ mouseDown=true; document.body.classList.add("using-mouse"); });
+    window.addEventListener("keydown", ()=>{ if(mouseDown){ mouseDown=false; document.body.classList.remove("using-mouse"); } });
   </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'970b08931629dccb',t:'MTc1NTQ1MzIzNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
