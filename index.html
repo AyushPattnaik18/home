@@ -287,7 +287,7 @@
           <h2 class="text-xl font-bold text-slate-100">Encoding</h2>
           <span class="pill text-xs px-3 py-1 rounded-full">Demo</span>
         </div>
-        <p class="mt-1 text-slate-400 text-sm">Choose a cover image, enter a secret key, then encode.</p>
+        <p class="mt-1 text-slate-400 text-sm">Choose a cover image, enter a secret key, and add a message or small attachments to hide, then encode.</p>
 
         <!-- Uploader -->
         <div class="mt-5 grid lg:grid-cols-3 gap-6">
@@ -329,6 +329,22 @@
               <button id="genKey" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Generate</button>
             </div>
 
+            <div class="mt-5">
+              <label class="text-xs text-slate-400">Hidden Message</label>
+              <textarea id="hiddenMessage" placeholder="Type a secret message (optional)" rows="4"
+                        class="w-full mt-1 rounded-lg bg-slate-900/50 border border-slate-600/60 px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"></textarea>
+              <div class="mt-3">
+                <label class="text-xs text-slate-400">Attachments (optional)</label>
+                <div id="attachDrop" class="mt-1 rounded-lg panel border border-slate-600/60 p-3 text-sm text-slate-300 flex flex-col items-center gap-2 text-center">
+                  <div class="kbd">Drag files here</div>
+                  <div class="text-slate-500">or</div>
+                  <button id="attachPick" class="px-3 py-1.5 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40">Browse</button>
+                  <input id="attachInput" type="file" multiple class="hidden" />
+                </div>
+                <ul id="attachList" class="mt-2 space-y-2 text-xs text-slate-400"></ul>
+              </div>
+            </div>
+
             <button id="encodeBtn" class="w-full mt-5 bg-emerald-400/20 hover:bg-emerald-400/30 border border-emerald-300/40 text-emerald-100 px-4 py-2 rounded-xl btn glow">Encode</button>
 
             <div id="encodeResult" class="mt-5 hidden">
@@ -336,7 +352,7 @@
               <img id="encodeOut" class="mt-2 w-full max-h-72 object-contain rounded-lg border border-slate-700/60" alt="Encoded Output">
               <div class="mt-3 flex items-center gap-2">
                 <a id="downloadEncoded" class="px-3 py-2 rounded-lg border border-slate-600/60 text-slate-200 hover:text-cyan-200 hover:border-cyan-400/40" download="stego-image.png">Download</a>
-                <span class="text-xs text-slate-500">This demo overlays a subtle watermark to simulate embedding.</span>
+                <span class="text-xs text-slate-500">This demo embeds your message and file names into the visual watermark only.</span>
               </div>
             </div>
           </div>
@@ -569,19 +585,29 @@
     function bindDropArea(areaEl, fileInput, onLoaded){
       const openPicker = () => fileInput.click();
       areaEl.addEventListener("click", openPicker);
-      ;["dragenter","dragover"].forEach(evt=>{
+      ["dragenter","dragover"].forEach(evt=>{
         areaEl.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); areaEl.classList.add("drag-active"); });
       });
-      ;["dragleave","drop"].forEach(evt=>{
+      ["dragleave","drop"].forEach(evt=>{
         areaEl.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); areaEl.classList.remove("drag-active"); });
       });
       areaEl.addEventListener("drop",(e)=>{
-        const f = e.dataTransfer.files?.[0];
-        if(f) handleFile(f);
+        const files = e.dataTransfer.files;
+        if(!files || files.length === 0) return;
+        if (fileInput.hasAttribute('multiple')) {
+          Array.from(files).forEach(f=>handleFile(f));
+        } else {
+          handleFile(files[0]);
+        }
       });
       fileInput.addEventListener("change", (e)=>{
-        const f = e.target.files?.[0];
-        if(f) handleFile(f);
+        const files = e.target.files;
+        if(!files || files.length === 0) return;
+        if (fileInput.hasAttribute('multiple')) {
+          Array.from(files).forEach(f=>handleFile(f));
+        } else {
+          handleFile(files[0]);
+        }
       });
       function handleFile(file){
         const reader = new FileReader();
@@ -592,6 +618,7 @@
 
     // Encode flow
     let encodeImgSrc = null;
+    let attachments = [];
     bindDropArea($("#encodeDrop"), $("#encodeFile"), (src, file)=>{
       encodeImgSrc = src;
       $("#encodePreview").src = src;
@@ -612,21 +639,62 @@
       toast("Secret key generated.");
     });
 
+    // Attachments handling
+    const attachDrop = $("#attachDrop");
+    const attachInput = $("#attachInput");
+    const attachPick = $("#attachPick");
+    const attachList = $("#attachList");
+    const renderAttachList = ()=>{
+      attachList.innerHTML = "";
+      if(attachments.length===0){
+        const li = document.createElement('li');
+        li.textContent = "No attachments added.";
+        li.className = "text-slate-500";
+        attachList.appendChild(li);
+        return;
+      }
+      attachments.forEach((a,i)=>{
+        const li = document.createElement('li');
+        li.className = "flex items-center justify-between gap-2 panel rounded-lg px-2 py-1";
+        li.innerHTML = `<span class="truncate">${a.name} (${Math.round(a.size/1024)} KB)</span>
+                        <button data-i="${i}" class="rm px-2 py-1 rounded border border-slate-600/60 hover:text-rose-200 hover:border-rose-400/40">Remove</button>`;
+        attachList.appendChild(li);
+      });
+      attachList.querySelectorAll('.rm').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const i = +btn.getAttribute('data-i');
+          attachments.splice(i,1);
+          renderAttachList();
+        });
+      })
+    };
+    renderAttachList();
+
+    attachPick.addEventListener('click', ()=> attachInput.click());
+    bindDropArea(attachDrop, attachInput, (src, file)=>{
+      // Limit size for demo (<= 1MB each)
+      if(file.size > 1024*1024){ toast(`${file.name} is too large for demo (1MB max).`); return; }
+      attachments.push({ name:file.name, size:file.size });
+      renderAttachList();
+    });
+
     $("#encodeBtn").addEventListener("click", ()=>{
       if(!encodeImgSrc){ toast("Please select an image first."); return; }
       const key = $("#encodeKey").value.trim();
       if(!key){ toast("Please enter a secret key."); return; }
+      const msg = $("#hiddenMessage").value.trim();
       // Simulate encoding by drawing onto canvas and adding subtle watermark
-      simulateEncode(encodeImgSrc, key).then(dataUrl=>{
+      simulateEncode(encodeImgSrc, key, msg, attachments).then(dataUrl=>{
         $("#encodeOut").src = dataUrl;
         $("#downloadEncoded").href = dataUrl;
         $("#encodeResult").classList.remove("hidden");
-        addHistory({ type:"Encode", detail:"Created a stego image (demo).", thumb:dataUrl });
+        const detail = msg ? `Message (${msg.slice(0,18)}${msg.length>18?'…':''})` : attachments.length? `${attachments.length} attachment(s)` : "No payload";
+        addHistory({ type:"Encode", detail:`Created a stego image (demo): ${detail}.`, thumb:dataUrl });
         toast("Encoded (simulated). You can download the result.");
       });
     });
 
-    function simulateEncode(src, key){
+    function simulateEncode(src, key, msg="", files=[]){
       return new Promise((resolve)=>{
         const img = new Image();
         img.crossOrigin = "anonymous";
@@ -655,7 +723,8 @@
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.font = "bold 22px 'JetBrains Mono', monospace";
-          const tag = `KEY:${key.slice(0,12)} • DEMO`;
+          const filesStr = files.slice(0,3).map(f=>f.name).join(", ");
+          const tag = `KEY:${key.slice(0,10)} • ${msg?"MSG":""}${msg.slice(0,10)}${msg.length>10?"…":""} ${files.length?"• FILES:"+filesStr:""} • DEMO`;
           for(let y=-h; y<=h; y+=120){
             for(let x=-w; x<=w; x+=280){
               ctx.fillText(tag, x, y);
@@ -775,5 +844,5 @@
     window.addEventListener("mousedown", ()=>{ mouseDown=true; document.body.classList.add("using-mouse"); });
     window.addEventListener("keydown", ()=>{ if(mouseDown){ mouseDown=false; document.body.classList.remove("using-mouse"); } });
   </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'970b08931629dccb',t:'MTc1NTQ1MzIzNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'970b167cf04bf648',t:'MTc1NTQ1MzgwNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
